@@ -3,8 +3,6 @@ from django.http import JsonResponse, HttpResponseRedirect, HttpResponse, HttpRe
 from django.conf import settings
 from core.models import OAuthToken
 from core.services.acc_client import ACCClient
-from core.services.aggregate import ProjectService
-
 
 def index(request):
     tok = OAuthToken.objects.order_by("-updated_at").first()
@@ -14,7 +12,6 @@ def index(request):
         "login_url": "/auth/login/"
     })
 
-
 def login_start(request):
     qs = urllib.parse.urlencode({
         "response_type": "code",
@@ -23,7 +20,6 @@ def login_start(request):
         "scope": settings.FORGE_SCOPE,
     })
     return HttpResponseRedirect(f"{settings.FORGE_BASE_URL}/authentication/v2/authorize?{qs}")
-
 
 def oauth_callback(request):
     code = request.GET.get("code")
@@ -51,7 +47,6 @@ def oauth_callback(request):
     )
     return HttpResponseRedirect("/")
 
-
 def list_files(request):
     client = ACCClient()
     project_id = client.get_project_id_by_name(settings.TARGET_PROJECT_NAME)
@@ -60,13 +55,11 @@ def list_files(request):
     files = client.list_all_files(project_id)
     return JsonResponse({"files": files})
 
-
 def show_token(request):
     tok = OAuthToken.objects.order_by("-updated_at").first()
     if not tok:
         return HttpResponse("No token stored")
     return HttpResponse(tok.access_token, content_type="text/plain")
-
 
 def download_by_project_name(request):
     client = ACCClient()
@@ -75,7 +68,6 @@ def download_by_project_name(request):
     except Exception as e:
         return HttpResponseBadRequest(str(e))
     return HttpResponseRedirect(url)
-
 
 def report(request):
     client = ACCClient()
@@ -118,15 +110,15 @@ def report(request):
                 except Exception:
                     info_cache[u] = None
             info = info_cache[u]
-            if not info or not info.get("is_pdf"):
+            if not info or not info.is_pdf:
                 continue
             pdf_issues.append({
                 "project_id": dm_project_id,
                 "project_name": settings.TARGET_PROJECT_NAME,
                 "document_id": u,
-                "document_name": info.get("name") or "",
-                "document_path": info.get("path") or "",
-                "web_link": info.get("webView") or "",
+                "document_name": info.name or "",
+                "document_path": info.path or "",
+                "web_link": info.web_link or "",
                 "issue_id": i.get("id"),
                 "issue_type_id": i.get("issueTypeId"),
                 "issue_sub_type_id": i.get("issueSubtypeId"),

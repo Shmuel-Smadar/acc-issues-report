@@ -3,7 +3,7 @@ from .auth import AuthSession
 from .projects import ProjectsService
 from .dm import DataManagementService
 from .issues import IssuesService
-
+from core.dto import Document
 
 class ACCClient:
     def __init__(self):
@@ -54,5 +54,5 @@ class ACCClient:
     def build_folder_path(self, dm_project_id: str, start_folder_id: Optional[str]) -> str:
         return self.dm.build_folder_path(dm_project_id, start_folder_id)
 
-    def get_item_info(self, dm_project_id: str, item_urn: str) -> dict:
+    def get_item_info(self, dm_project_id: str, item_urn: str) -> Document:
         return self.dm.get_item_info(dm_project_id, item_urn)

@@ -4,7 +4,7 @@ from typing import Tuple, Optional, List
 import requests
 from .auth import AuthSession
 from .projects import ProjectsService
-
+from core.dto import Document
 
 class DataManagementService:
     def __init__(self, auth: AuthSession, projects: ProjectsService):
@@ -54,7 +54,7 @@ class DataManagementService:
             name = attrs.get("name") or attrs.get("displayName") or ""
             file_type = attrs.get("fileType") or ""
             if file_type.lower() == "pdf" or name.lower().endswith(".pdf"):
-                rel = v.get("relationships", {})
+                rel = v.get("relationships", {}) or {}
                 storage = rel.get("storage")
                 if not storage:
                     rel_links = (v.get("links") or {}).get("relationships") or {}
@@ -168,7 +168,7 @@ class DataManagementService:
         names.reverse()
         return "/".join(names)
 
-    def get_item_info(self, dm_project_id: str, item_urn: str) -> dict:
+    def get_item_info(self, dm_project_id: str, item_urn: str) -> Document:
         tip = self.item_tip(dm_project_id, item_urn)
         attrs = tip.get("attributes") or {}
         links = tip.get("links") or {}
@@ -179,4 +179,4 @@ class DataManagementService:
         is_pdf = file_type == "pdf" or name.lower().endswith(".pdf")
         folder_id = self.get_item_parent_folder_id(dm_project_id, item_urn)
         path = self.build_folder_path(dm_project_id, folder_id)
-        return {"name": name, "webView": web_href, "path": path, "is_pdf": is_pdf}
+        return Document(id=item_urn, name=name, path=path, web_link=web_href, is_pdf=is_pdf)
