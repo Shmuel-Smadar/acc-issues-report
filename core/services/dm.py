@@ -4,7 +4,9 @@ from typing import Tuple, Optional, List
 import requests
 from .auth import AuthSession
 from .projects import ProjectsService
+from .dm_helpers import first_pdf_storage_from_contents, extract_pdf_names_from_contents
 from core.dto import Document
+
 
 class DataManagementService:
     def __init__(self, auth: AuthSession, projects: ProjectsService):
@@ -45,37 +47,9 @@ class DataManagementService:
                 url = ""
         return {"data": data_accum, "included": included_accum}
 
-    def _first_pdf_storage_from_contents(self, contents: dict) -> Tuple[str, str, str]:
-        included = contents.get("included", [])
-        for v in included:
-            if v.get("type") != "versions":
-                continue
-            attrs = v.get("attributes") or {}
-            name = attrs.get("name") or attrs.get("displayName") or ""
-            file_type = attrs.get("fileType") or ""
-            if file_type.lower() == "pdf" or name.lower().endswith(".pdf"):
-                rel = v.get("relationships", {}) or {}
-                storage = rel.get("storage")
-                if not storage:
-                    rel_links = (v.get("links") or {}).get("relationships") or {}
-                    storage = rel_links.get("storage")
-                if not storage:
-                    continue
-                data = storage.get("data") or {}
-                storage_id = data.get("id") or ""
-                prefix = "urn:adsk.objects:os.object:"
-                if not storage_id.startswith(prefix):
-                    continue
-                rest = storage_id[len(prefix):]
-                parts = rest.split("/", 1)
-                if len(parts) != 2:
-                    continue
-                return parts[0], parts[1], name
-        raise RuntimeError("No PDF found in folder")
-
     def get_first_pdf_storage(self, project_id: str, folder_id: str) -> Tuple[str, str, str]:
         contents = self._folder_contents(project_id, folder_id)
-        return self._first_pdf_storage_from_contents(contents)
+        return first_pdf_storage_from_contents(contents)
 
     def signed_s3_url(self, bucket_key: str, object_key: str) -> str:
         url = f"{self.base}/oss/v2/buckets/{bucket_key}/objects/{object_key}/signeds3download"
@@ -83,20 +57,6 @@ class DataManagementService:
         if r.status_code != 200:
             raise RuntimeError(f"Failed to get signed URL: {r.text}")
         return r.json().get("url")
-
-    def _extract_pdf_names_from_contents(self, contents: dict) -> List[str]:
-        names: List[str] = []
-        included = contents.get("included", []) or []
-        for v in included:
-            if v.get("type") != "versions":
-                continue
-            attrs = v.get("attributes") or {}
-            name = attrs.get("name") or attrs.get("displayName") or ""
-            file_type = (attrs.get("fileType") or "").lower()
-            if file_type == "pdf" or name.lower().endswith(".pdf"):
-                if name:
-                    names.append(name)
-        return names
 
     def list_all_files(self, project_id: str) -> List[str]:
         pdf_names = set()
@@ -108,7 +68,7 @@ class DataManagementService:
                 continue
             seen.add(folder_id)
             contents = self._folder_contents_all(project_id, folder_id)
-            for name in self._extract_pdf_names_from_contents(contents):
+            for name in extract_pdf_names_from_contents(contents):
                 pdf_names.add(name)
             for d in contents.get("data", []):
                 if d.get("type") == "folders":

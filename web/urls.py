@@ -1,11 +1,9 @@
-from django.contrib import admin
 from django.urls import path
 from .views_auth import index, login_start, oauth_callback, show_token
 from .views_files import list_files, download_by_project_name
 from .views_report import report_csv
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
     path("", index, name="index"),
     path("auth/login/", login_start, name="login_start"),
     path("auth/callback/", oauth_callback, name="oauth_callback"),
