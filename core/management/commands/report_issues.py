@@ -7,6 +7,7 @@ from core.services.acc_client import ACCClient
 from core.services.aggregate import IssueAggregator
 from core.services.csv_export import rows_to_csv
 from core.services.auth import AuthExpired
+from core.models import Lock
 import requests
 
 class Command(BaseCommand):
@@ -15,7 +16,11 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         logger = logging.getLogger("app")
         logger.info("event=report.cli_start project=%s", settings.TARGET_PROJECT_NAME)
+        lock_name = "report_issues"
         try:
+            if Lock.objects.filter(name=lock_name).exists():
+                raise CommandError("Another report_issues run is already in progress")
+            Lock.objects.create(name=lock_name)
             client = ACCClient()
             rows = IssueAggregator(client).collect_rows()
             os.makedirs(settings.REPORT_OUTPUT_DIR, exist_ok=True)
@@ -47,3 +52,8 @@ class Command(BaseCommand):
         except requests.RequestException as e:
             logger.error("event=report.cli_error type=network error=%s", type(e).__name__)
             raise CommandError(f"Network error calling Autodesk APIs: {e}")
+        finally:
+            try:
+                Lock.objects.filter(name=lock_name).delete()
+            except Exception:
+                pass
