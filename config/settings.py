@@ -1,3 +1,4 @@
+import os
 import environ
 from pathlib import Path
 
@@ -81,3 +82,49 @@ FORGE_BASE_URL = env("FORGE_BASE_URL", default="https://developer.api.autodesk.c
 ACC_ACCOUNT_ID = env("ACC_ACCOUNT_ID", default="")
 REPORT_OUTPUT_DIR = env("REPORT_OUTPUT_DIR", default=str(BASE_DIR / "reports"))
 TARGET_PROJECT_NAME = env("TARGET_PROJECT_NAME", default="DEV TASK 1 Project")
+
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+APP_LOG_FILE = LOG_DIR / "app.log"
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "kv": {
+            "format": "%(asctime)s level=%(levelname)s logger=%(name)s %(message)s"
+        }
+    },
+    "handlers": {
+        "app_file": {
+            "class": "logging.FileHandler",
+            "filename": str(APP_LOG_FILE),
+            "formatter": "kv",
+            "level": "INFO",
+            "encoding": "utf-8",
+        },
+        "null": {
+            "class": "logging.NullHandler",
+        },
+    },
+    "loggers": {
+        "app": {
+            "handlers": ["app_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django": {
+            "handlers": ["null"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "django.server": {
+            "handlers": ["null"],
+            "level": "CRITICAL",
+            "propagate": False,
+        },
+    },
+    "root": {
+        "handlers": ["null"],
+        "level": "CRITICAL",
+    },
+}

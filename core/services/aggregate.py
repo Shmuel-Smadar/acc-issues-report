@@ -1,11 +1,12 @@
+import logging
 from django.conf import settings
 from core.dto import Document, IssueRow
 from .utils import norm_date, extract_viewable_guid, with_viewable_param, clean_comment_text
 
-
 class ProjectService:
     def __init__(self, client):
         self.client = client
+        self.logger = logging.getLogger("app")
 
     def list_and_print_projects(self):
         projects = self.client.list_projects_admin()
@@ -18,19 +19,21 @@ class ProjectService:
             raise RuntimeError(f"Project '{settings.TARGET_PROJECT_NAME}' not found. Available projects: {names}")
         return names
 
-
 class IssueAggregator:
     def __init__(self, client):
         self.client = client
+        self.logger = logging.getLogger("app")
 
     def _issues_project_id(self, dm_project_id: str) -> str:
         return dm_project_id[2:] if dm_project_id.startswith("b.") else dm_project_id
 
     def collect_rows(self) -> list[IssueRow]:
+        self.logger.info("event=aggregate.start project=%s", settings.TARGET_PROJECT_NAME)
         dm_project_id = self.client.get_project_id_by_name(settings.TARGET_PROJECT_NAME)
         issues_project_id = self._issues_project_id(dm_project_id)
         type_map, subtype_map = self.client.issues.issue_types_map(issues_project_id)
         issues = self.client.list_issues(issues_project_id)
+        self.logger.info("event=aggregate.issues_fetched count=%s", len(issues))
         info_cache: dict[str, Document | None] = {}
         rows: list[IssueRow] = []
         for iss in issues:
@@ -81,4 +84,5 @@ class IssueAggregator:
                         issue_comments=all_comments,
                     )
                 )
+        self.logger.info("event=aggregate.rows_built count=%s", len(rows))
         return rows

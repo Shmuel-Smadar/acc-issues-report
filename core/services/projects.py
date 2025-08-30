@@ -1,11 +1,12 @@
+import logging
 from django.conf import settings
 from .auth import AuthSession
-
 
 class ProjectsService:
     def __init__(self, auth: AuthSession):
         self.auth = auth
         self.base = self.auth.base
+        self.logger = logging.getLogger("app")
 
     def _hub_id(self) -> str:
         if not settings.ACC_ACCOUNT_ID:
@@ -14,28 +15,17 @@ class ProjectsService:
 
     def get_project_id_by_name(self, project_name: str) -> str:
         url = f"{self.base}/project/v1/hubs/{self._hub_id()}/projects"
+        self.logger.info("event=projects.list url=%s", url)
         r = self.auth.get(url, timeout=30)
         if r.status_code != 200:
+            self.logger.warning("event=projects.list result=fail status=%s", r.status_code)
             raise RuntimeError(f"Failed to list projects: {r.text}")
         data = r.json().get("data", [])
+        self.logger.info("event=projects.list result=ok count=%s", len(data))
         for p in data:
             if (p.get("attributes") or {}).get("name") == project_name:
-                return p.get("id")
+                pid = p.get("id")
+                self.logger.info("event=projects.match result=found id=%s name=%s", pid, project_name)
+                return pid
+        self.logger.info("event=projects.match result=not_found name=%s", project_name)
         raise RuntimeError(f"Project '{project_name}' not found")
-
-    def get_first_top_folder_id(self, project_id: str) -> str:
-        url = f"{self.base}/project/v1/hubs/{self._hub_id()}/projects/{project_id}/topFolders"
-        r = self.auth.get(url, timeout=30)
-        if r.status_code != 200:
-            raise RuntimeError(f"Failed to get top folders: {r.text}")
-        arr = r.json().get("data", [])
-        if not arr:
-            raise RuntimeError("No top folders found")
-        return arr[0].get("id")
-
-    def get_top_folder_ids(self, project_id: str) -> list[str]:
-        url = f"{self.base}/project/v1/hubs/{self._hub_id()}/projects/{project_id}/topFolders"
-        r = self.auth.get(url, timeout=30)
-        if r.status_code != 200:
-            raise RuntimeError(f"Failed to get top folders: {r.text}")
-        return [d.get("id") for d in r.json().get("data", []) if d.get("id")]

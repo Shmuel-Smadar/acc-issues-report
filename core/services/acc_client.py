@@ -15,14 +15,9 @@ class ACCClient:
     def get_project_id_by_name(self, project_name: str) -> str:
         return self.projects.get_project_id_by_name(project_name)
 
-    def get_first_top_folder_id(self, project_id: str) -> str:
-        return self.projects.get_first_top_folder_id(project_id)
-
-    def get_top_folder_ids(self, project_id: str) -> List[str]:
-        return self.projects.get_top_folder_ids(project_id)
-
     def signed_s3_url(self, bucket_key: str, object_key: str) -> str:
         return self.dm.signed_s3_url(bucket_key, object_key)
+    
     def list_issues(self, issues_project_id: str) -> List[dict]:
         return self.issues.list_issues(issues_project_id)
 
