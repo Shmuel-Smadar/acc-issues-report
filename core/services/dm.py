@@ -1,7 +1,6 @@
 import urllib.parse
 from collections import deque
 from typing import Tuple, Optional, List
-import requests
 from .auth import AuthSession
 from .projects import ProjectsService
 from .dm_helpers import first_pdf_storage_from_contents, extract_pdf_names_from_contents
@@ -17,7 +16,7 @@ class DataManagementService:
     def _folder_contents(self, project_id: str, folder_id: str) -> dict:
         enc_folder = urllib.parse.quote(folder_id, safe="")
         url = f"{self.base}/data/v1/projects/{project_id}/folders/{enc_folder}/contents"
-        r = requests.get(url, headers=self.auth.headers(), timeout=30)
+        r = self.auth.get(url, timeout=30)
         if r.status_code != 200:
             raise RuntimeError(f"Failed to list folder contents: {r.text}")
         return r.json()
@@ -27,9 +26,8 @@ class DataManagementService:
         url = f"{self.base}/data/v1/projects/{project_id}/folders/{enc_folder}/contents"
         data_accum: List[dict] = []
         included_accum: List[dict] = []
-        headers = self.auth.headers()
         while url:
-            r = requests.get(url, headers=headers, timeout=30)
+            r = self.auth.get(url, timeout=30)
             if r.status_code != 200:
                 raise RuntimeError(f"Failed to list folder contents: {r.text}")
             j = r.json()
@@ -53,7 +51,7 @@ class DataManagementService:
 
     def signed_s3_url(self, bucket_key: str, object_key: str) -> str:
         url = f"{self.base}/oss/v2/buckets/{bucket_key}/objects/{object_key}/signeds3download"
-        r = requests.get(url, headers=self.auth.headers(), timeout=30)
+        r = self.auth.get(url, timeout=30)
         if r.status_code != 200:
             raise RuntimeError(f"Failed to get signed URL: {r.text}")
         return r.json().get("url")
@@ -80,7 +78,7 @@ class DataManagementService:
     def item_tip(self, dm_project_id: str, item_urn: str) -> dict:
         enc_item = urllib.parse.quote(item_urn, safe="")
         url = f"{self.base}/data/v1/projects/{dm_project_id}/items/{enc_item}/tip"
-        r = requests.get(url, headers=self.auth.headers(), timeout=30)
+        r = self.auth.get(url, timeout=30)
         if r.status_code != 200:
             raise RuntimeError(f"Failed to get item tip: {r.text}")
         return r.json().get("data") or {}
@@ -88,7 +86,7 @@ class DataManagementService:
     def get_item_parent_folder_id(self, dm_project_id: str, item_urn: str) -> Optional[str]:
         enc_item = urllib.parse.quote(item_urn, safe="")
         url = f"{self.base}/data/v1/projects/{dm_project_id}/items/{enc_item}/parent"
-        r = requests.get(url, headers=self.auth.headers(), timeout=30)
+        r = self.auth.get(url, timeout=30)
         if r.status_code != 200:
             return None
         data = r.json().get("data") or {}
@@ -97,7 +95,7 @@ class DataManagementService:
     def get_folder(self, dm_project_id: str, folder_id: str) -> dict:
         enc_folder = urllib.parse.quote(folder_id, safe="")
         url = f"{self.base}/data/v1/projects/{dm_project_id}/folders/{enc_folder}"
-        r = requests.get(url, headers=self.auth.headers(), timeout=30)
+        r = self.auth.get(url, timeout=30)
         if r.status_code != 200:
             raise RuntimeError(f"Failed to get folder: {r.text}")
         return r.json().get("data") or {}
@@ -105,7 +103,7 @@ class DataManagementService:
     def get_folder_parent_id(self, dm_project_id: str, folder_id: str) -> Optional[str]:
         enc_folder = urllib.parse.quote(folder_id, safe="")
         url = f"{self.base}/data/v1/projects/{dm_project_id}/folders/{enc_folder}/parent"
-        r = requests.get(url, headers=self.auth.headers(), timeout=30)
+        r = self.auth.get(url, timeout=30)
         if r.status_code != 200:
             return None
         data = r.json().get("data") or {}

@@ -1,4 +1,3 @@
-import requests
 from django.conf import settings
 from .auth import AuthSession
 
@@ -15,7 +14,7 @@ class ProjectsService:
 
     def get_project_id_by_name(self, project_name: str) -> str:
         url = f"{self.base}/project/v1/hubs/{self._hub_id()}/projects"
-        r = requests.get(url, headers=self.auth.headers(), timeout=30)
+        r = self.auth.get(url, timeout=30)
         if r.status_code != 200:
             raise RuntimeError(f"Failed to list projects: {r.text}")
         data = r.json().get("data", [])
@@ -26,7 +25,7 @@ class ProjectsService:
 
     def get_first_top_folder_id(self, project_id: str) -> str:
         url = f"{self.base}/project/v1/hubs/{self._hub_id()}/projects/{project_id}/topFolders"
-        r = requests.get(url, headers=self.auth.headers(), timeout=30)
+        r = self.auth.get(url, timeout=30)
         if r.status_code != 200:
             raise RuntimeError(f"Failed to get top folders: {r.text}")
         arr = r.json().get("data", [])
@@ -36,7 +35,7 @@ class ProjectsService:
 
     def get_top_folder_ids(self, project_id: str) -> list[str]:
         url = f"{self.base}/project/v1/hubs/{self._hub_id()}/projects/{project_id}/topFolders"
-        r = requests.get(url, headers=self.auth.headers(), timeout=30)
+        r = self.auth.get(url, timeout=30)
         if r.status_code != 200:
             raise RuntimeError(f"Failed to get top folders: {r.text}")
         return [d.get("id") for d in r.json().get("data", []) if d.get("id")]

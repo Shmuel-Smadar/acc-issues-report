@@ -3,7 +3,6 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Initialise environ and read .env
 env = environ.Env()
 env.read_env(BASE_DIR / ".env")
 
@@ -25,6 +24,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "web.middleware.EnsureForgeAuthMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -69,7 +69,6 @@ USE_TZ = True
 STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Forge / ACC config
 FORGE_CLIENT_ID = env("FORGE_CLIENT_ID")
 FORGE_CLIENT_SECRET = env("FORGE_CLIENT_SECRET")
 FORGE_CALLBACK_URL = env("FORGE_CALLBACK_URL")

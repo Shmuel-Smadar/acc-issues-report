@@ -1,4 +1,3 @@
-import requests
 from .auth import AuthSession
 
 
@@ -11,10 +10,9 @@ class IssuesService:
         out: list[dict] = []
         limit = 100
         offset = 0
-        headers = self.auth.headers()
         while True:
             url = f"{self.base}/construction/issues/v1/projects/{issues_project_id}/issues?limit={limit}&offset={offset}"
-            r = requests.get(url, headers=headers, timeout=30)
+            r = self.auth.get(url, timeout=30)
             if r.status_code != 200:
                 raise RuntimeError(f"Failed to list issues: {r.text}")
             j = r.json()
@@ -27,9 +25,8 @@ class IssuesService:
         return out
 
     def issue_types_map(self, issues_project_id: str) -> tuple[dict, dict]:
-        headers = self.auth.headers()
         url = f"{self.base}/construction/issues/v1/projects/{issues_project_id}/issue-types?include=subtypes"
-        r = requests.get(url, headers=headers, timeout=30)
+        r = self.auth.get(url, timeout=30)
         if r.status_code != 200:
             raise RuntimeError(f"Failed to get issue types: {r.text}")
         j = r.json()
@@ -48,9 +45,8 @@ class IssuesService:
         return type_map, subtype_map
 
     def get_comments(self, issues_project_id: str, issue_id: str) -> list[dict]:
-        headers = self.auth.headers()
         url = f"{self.base}/construction/issues/v1/projects/{issues_project_id}/issues/{issue_id}/comments"
-        r = requests.get(url, headers=headers, timeout=30)
+        r = self.auth.get(url, timeout=30)
         if r.status_code != 200:
             return []
         return r.json().get("results", [])
