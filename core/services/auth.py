@@ -2,6 +2,7 @@ import time
 import requests
 from django.conf import settings
 from core.models import OAuthToken
+from .http_retry import request_with_retries
 
 
 class AuthExpired(Exception):
@@ -11,6 +12,9 @@ class AuthExpired(Exception):
 class AuthSession:
     def __init__(self):
         self.base = settings.FORGE_BASE_URL.rstrip("/")
+        self.max_retries = getattr(settings, "FORGE_RETRY_MAX_RETRIES", 5)
+        self.backoff_base = getattr(settings, "FORGE_RETRY_BACKOFF_BASE", 0.5)
+        self.backoff_max = getattr(settings, "FORGE_RETRY_BACKOFF_MAX", 10.0)
 
     def _row(self) -> OAuthToken | None:
         return OAuthToken.objects.order_by("-updated_at").first()
@@ -49,14 +53,19 @@ class AuthSession:
         row.save()
 
     def _request(self, method: str, url: str, **kwargs) -> requests.Response:
-        hdrs = kwargs.pop("headers", {}) or {}
-        base_hdrs = self.headers()
-        merged = {}
-        merged.update(base_hdrs)
-        merged.update(hdrs)
+        hdrs_in = kwargs.pop("headers", {}) or {}
         timeout = kwargs.pop("timeout", 30)
-        resp = requests.request(method, url, headers=merged, timeout=timeout, **kwargs)
-        if resp.status_code == 401:
+
+        def make_request(h):
+            merged = {}
+            merged.update(h)
+            merged.update(hdrs_in)
+            return requests.request(method, url, headers=merged, timeout=timeout, **kwargs)
+
+        def get_headers():
+            return self.headers()
+
+        def refresh_on_401():
             row = self._row()
             if not row:
                 self._clear_tokens()
@@ -66,14 +75,18 @@ class AuthSession:
             except Exception:
                 self._clear_tokens()
                 raise AuthExpired("Access token invalid or expired")
-            merged = {}
-            merged.update(self.headers())
-            merged.update(hdrs)
-            resp2 = requests.request(method, url, headers=merged, timeout=timeout, **kwargs)
-            if resp2.status_code == 401:
-                self._clear_tokens()
-                raise AuthExpired("Access token invalid or expired")
-            return resp2
+
+        resp = request_with_retries(
+            make_request,
+            get_headers,
+            refresh_on_401,
+            max_retries=self.max_retries,
+            backoff_base=self.backoff_base,
+            backoff_max=self.backoff_max,
+        )
+        if resp.status_code == 401:
+            self._clear_tokens()
+            raise AuthExpired("Access token invalid or expired")
         return resp
 
     def get(self, url: str, **kwargs) -> requests.Response:
