@@ -53,14 +53,6 @@ def show_token(request):
         return HttpResponse("No token stored")
     return HttpResponse(tok.access_token, content_type="text/plain")
 
-def download_by_project_name(request):
-    client = ACCClient()
-    try:
-        url = client.signed_url_for_first_pdf_in_project("DEV TASK 1 Project")
-    except Exception as e:
-        return HttpResponseBadRequest(str(e))
-    return HttpResponseRedirect(url)
-
 def report(request):
     client = ACCClient()
     try:
