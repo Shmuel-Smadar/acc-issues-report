@@ -52,17 +52,6 @@ class WebViewsTests(CaseLoggerMixin, TestCase):
         self.assertIn("client_id=cid", loc)
         self.assertIn("redirect_uri=http%3A%2F%2Ftestserver%2Fauth%2Fcallback%2F", loc)
 
-    def test_list_files_success(self):
-        class FakeACC:
-            def get_project_id_by_name(self, name):
-                return "p1"
-            def list_all_files(self, project_id):
-                return ["A.pdf", "B.pdf"]
-        with patch("web.views_files.ACCClient", lambda: FakeACC()):
-            resp = self.client.get("/files/")
-            self.assertEqual(resp.status_code, 200)
-            self.assertEqual(resp.json()["files"], ["A.pdf", "B.pdf"])
-
     def test_download_by_project_name_redirect(self):
         class FakeACC:
             def signed_url_for_first_pdf_in_project(self, project_name):

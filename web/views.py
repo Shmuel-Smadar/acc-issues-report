@@ -47,14 +47,6 @@ def oauth_callback(request):
     )
     return HttpResponseRedirect("/")
 
-def list_files(request):
-    client = ACCClient()
-    project_id = client.get_project_id_by_name(settings.TARGET_PROJECT_NAME)
-    if not project_id:
-        return HttpResponseBadRequest("ACC_PROJECT_ID not set")
-    files = client.list_all_files(project_id)
-    return JsonResponse({"files": files})
-
 def show_token(request):
     tok = OAuthToken.objects.order_by("-updated_at").first()
     if not tok:

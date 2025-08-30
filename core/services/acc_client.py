@@ -21,21 +21,8 @@ class ACCClient:
     def get_top_folder_ids(self, project_id: str) -> List[str]:
         return self.projects.get_top_folder_ids(project_id)
 
-    def get_first_pdf_storage(self, project_id: str, folder_id: str) -> Tuple[str, str, str]:
-        return self.dm.get_first_pdf_storage(project_id, folder_id)
-
     def signed_s3_url(self, bucket_key: str, object_key: str) -> str:
         return self.dm.signed_s3_url(bucket_key, object_key)
-
-    def signed_url_for_first_pdf_in_project(self, project_name: str) -> str:
-        project_id = self.projects.get_project_id_by_name(project_name)
-        folder_id = self.projects.get_first_top_folder_id(project_id)
-        bucket, obj, _ = self.dm.get_first_pdf_storage(project_id, folder_id)
-        return self.dm.signed_s3_url(bucket, obj)
-
-    def list_all_files(self, project_id: str) -> List[str]:
-        return self.dm.list_all_files(project_id)
-
     def list_issues(self, issues_project_id: str) -> List[dict]:
         return self.issues.list_issues(issues_project_id)
 
